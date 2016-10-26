@@ -1,67 +1,107 @@
-﻿using System;
+﻿//#define Experimental   //garantie le non fonctionnement du projet
+#define ShowFPS
+
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
 using System.Windows.Forms;
-using System.Threading;
-using System.Diagnostics;
+using TopDownShooterGDI.Objects;
 
 namespace TopDownShooterGDI
 {
+
     public partial class frmJeu : Form
     {
 
-        public static int WindowsSizeX, WindowsSizeY;
-        List<int> Score = new List<int>();
-        long AIMovTime;
-        Point AIDir = new Point(0, 0);
-        Point EnemyPosition;
-        long AILastTick;
-        long MovementLastTick;
-        long BulletLastTick;
-        long EnemyBulletLastTick;
-        long AILastShotTick;
+        #region Members
+
+        SizeF Format;
+        Point FPS = new Point(0, 0);
+#if Experimental
+        Point DefaultResolution = new Point(0, 0);
+#else
+        Point DefaultResolution;
+#endif
+        int NbrPlayer = 1;
+#if ShowFPS
+        int NbrAI = 50;  //Test des FPS avec 50 joueurs
+#else
+        int NbrAI = 5;
+#endif
+        int DefaultFireRate = 400;
+        int DefaultPlayerSpeed = 20;
+        int DefaultPlayerLife = 1;
+
         int NMur;
-        int[,] WallX;
-        int[,] WallY;
+        public int[,] WallX;
+        public int[,] WallY;
+
+        
+        
         Point Light;
-        Point Player2;
+        List<Player> Players = new List<Player>();
         Pen myPen = new Pen(Color.Blue);
         Brush Br = new SolidBrush(Color.Black);
         Point[] Shadows = new Point[6];
-        Point[,] tempPt;
-        TopDownShooter.Objects.ShadowPolygon SP;
-        List<Objects.Bullet> Bullet = new List<Objects.Bullet>();
-        List<Objects.Bullet> EnemyBullet = new List<Objects.Bullet>();
-        int VY;
-        int VX;
-        Point Player1 = new Point(500,500);
-        
+        Point[,] ShadowArray;
+        //TopDownShooter.Objects.ShadowPolygon SP;
 
+#endregion
         public frmJeu()
         {
             InitializeComponent();
-            
             this.DoubleBuffered = true;
+            if (!this.Controls.Contains(UI.Main_Menu.Instance))
+            {
+                this.Controls.Add(UI.Main_Menu.Instance);
+                UI.Main_Menu.Instance.BringToFront();
+            }
+            else
+            {
+                UI.Main_Menu.Instance.Show();
+                UI.Main_Menu.Instance.BringToFront();
+            }
         }
-
-        private void frmJeu_Load(object sender, EventArgs e)
+        public void Setup(int ai, int speed, int hp, int firerate)
         {
-            EnemyPosition = new Point(50, 50);
-            SP = new TopDownShooter.Objects.ShadowPolygon();
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.WindowState = FormWindowState.Maximized;
+            NbrAI = ai;
+            DefaultFireRate = firerate;
+            DefaultPlayerSpeed = speed;
+            DefaultPlayerLife = hp;
+
+
+        }
+        public void StartGame()
+        {
+            this.Controls.Clear();
+            this.Focus();
+            Random rng = new Random();
+#if !Experimental
+            DefaultResolution = new Point(this.Width, this.Height);
+#endif
             myPen.Color = Color.Blue;
-            WindowsSizeX = this.Width;
-            WindowsSizeY = this.Height;
             myPen.Width = 5;
+            for (int i = 0; i < NbrPlayer; i++)
+            {
+                Players.Add(new Player(new PointF(rng.Next(5, DefaultResolution.X), rng.Next(5, DefaultResolution.Y)), new PointF(0, 0), false, DefaultFireRate, DefaultPlayerLife, DefaultPlayerSpeed, DefaultPlayerLife));
+                while (Players[i].Position.X > 25 * 4 && Players[i].Position.X < 75 * 4 && Players[i].Position.Y > 25 * 4 && Players[i].Position.Y < 75 * 4)
+                {
+                    Players[i].Position = new PointF(rng.Next(1, DefaultResolution.X), rng.Next(1, DefaultResolution.Y));
+                }
+                if ((Players[i].Position.X > 25 && Players[i].Position.X < 75 && Players[i].Position.Y > 25 && Players[i].Position.Y < 75))
+                {
+                    MessageBox.Show("Test");
+                }
+            }
+            for (int i = NbrPlayer; i < NbrPlayer + NbrAI; i++)
+            {
+                Players.Add(new Player(new PointF(rng.Next(5, DefaultResolution.X), rng.Next(5, DefaultResolution.Y)), new PointF(0, 0), true, DefaultFireRate, DefaultPlayerLife, DefaultPlayerSpeed, DefaultPlayerLife));
+                while (Players[i].Position.X >= 25 * 4 && Players[i].Position.X < 75 * 4 && Players[i].Position.Y >= 25 * 4 && Players[i].Position.Y <= 75 * 4)
+                {
+                    Players[i].Position = new PointF(rng.Next(1, DefaultResolution.X), rng.Next(1, DefaultResolution.Y));
+                }
 
-
+            }
 
             if (!GetMap(out WallX, out WallY))
             {
@@ -69,120 +109,126 @@ namespace TopDownShooterGDI
                 //drop game
             }
 
-            MovementLastTick = System.Environment.TickCount;
-            BulletLastTick = System.Environment.TickCount;
-            EnemyBulletLastTick = System.Environment.TickCount;
-            AILastShotTick = System.Environment.TickCount;
-            AILastTick = System.Environment.TickCount;
-
+            //   AllocConsole();
+            UI.Main_Menu.Instance.Dispose();    //necesary?
+            this.Paint += new System.Windows.Forms.PaintEventHandler(this.frmJeu_Paint);
+            FPS.X = System.Environment.TickCount;
             while (true)
             {
+                FPS.Y++;
+
                 this.Refresh();
                 Application.DoEvents();
+
+                if (FPS.Y > 100)
+                {
+                    FPS.Y = 1;
+                    FPS.X = System.Environment.TickCount - 1;
+                }
             }
-
-        }/*
-        DateTime _lastCheckTime = DateTime.Now;
-        long _frameCount = 0;
-
-        // called whenever a map is updated
-        void OnMapUpdated()
-        {
-            Interlocked.Increment(ref _frameCount);
         }
 
-        // called every once in a while
-        double GetFps()
-        {
-            double secondsElapsed = (DateTime.Now - _lastCheckTime).TotalSeconds;
-            long count = Interlocked.Exchange(ref _frameCount, 0);
-            double fps = count / secondsElapsed;
-            _lastCheckTime = DateTime.Now;
-            return fps;
-        }
 
-        int Vall = 0;*/
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-           /* Vall++;
-            if (Vall % 100 == 0)
-            {
-                
-                MessageBox.Show(GetFps().ToString());
-            }
-            OnMapUpdated();*/
-            this.Refresh();
-        }
 
-        private void frmJeu_Resize(object sender, EventArgs e)
+#region Console
+        /* [DllImport("kernel32.dll", SetLastError = true)]
+         [return: MarshalAs(UnmanagedType.Bool)]
+         static extern bool AllocConsole();*/
+#endregion
+        private void frmJeu_Load(object sender, EventArgs e)
         {
-            WindowsSizeX = this.Width;
-            WindowsSizeY = this.Height;
-        }
+            
 
+
+        }
         private void frmJeu_Paint(object sender, PaintEventArgs e)
         {
-            //var g = e.Graphics;
-
-            //calculate the scale ratio to fit a 320x200 box in the form
-            /*var width = g.VisibleClipBounds.Width;
-            var height = g.VisibleClipBounds.Height;
-            var widthRatio = width / 700;
-            var heightRatio = height / 700;
-            var scaleRatio = Math.Min(widthRatio, heightRatio);
-            e.Graphics.ScaleTransform(scaleRatio, scaleRatio);*/
-            if (!GetPlayerPosition(out Player2))
-            {
-                MessageBox.Show("stuff");
-            }
-            Brush enemy = new SolidBrush(Color.Red);
-            
-            e.Graphics.FillEllipse(enemy, Player2.X - 5, Player2.Y - 5, 10, 10);
-            //Light = System.Windows.Forms.Cursor.Position;
             Light = this.PointToClient(Cursor.Position);
+            /*if (this.Height > this.Width - (this.Width / 8))
+            {
+                e.Graphics.TranslateTransform(0f, this.Height - (this.Height * Format.Height) - this.Width / 16);
 
-            e.Graphics.FillPie(Br, Player1.X - 2000, Player1.Y - 2000, 4000, 4000, (float)(Math.Atan2(Light.Y - Player1.Y, Light.X - Player1.X) / Math.PI * 180 +80), 200f);
+
+                Light.X = (int)(Light.X / Format.Width);
+                Light.Y = (int)(Light.Y / Format.Height - (this.Height - (this.Height * Format.Height) - this.Width / 16));
+            }
+            else*/
+      //      {
+                Light.X = (int)(Light.X / Format.Width);
+                Light.Y = (int)(Light.Y / Format.Height);
+     //       }
+            e.Graphics.ScaleTransform(Format.Width, Format.Height, System.Drawing.Drawing2D.MatrixOrder.Append);
 
 
 
+                                    // for (int i = 0; i < Players.Count; i++)
+            {
+                if (!GetPlayerPosition(ref Players))
+                {
+                    MessageBox.Show("stuff");
+                }
+            }
 
-            tempPt = SP.ReturnMeAnArray(NMur, WallX, WallY, Player1);
+            Brush PlayerBrush = new SolidBrush(Color.Red);
+            for (int i = 0; i < Players.Count; i++)
+            {
+                e.Graphics.FillEllipse(new SolidBrush(Color.Red), Players[i].Position.X - 5, Players[i].Position.Y - 5, 10, 10);
+            }
 
             
+            
+
+            //FOV
+            //e.Graphics.FillPie(Br, Players[0].Position.X - 2000, Players[0].Position.Y - 2000, 4000, 4000, (float)(Math.Atan2(Light.Y - Player1.Y, Light.X - Player1.X) / Math.PI * 180 +80), 200f);
+
+
+            ShadowArray = ShadowPolygon.ReturnMeAnArray(NMur, WallX, WallY, new PointF(Players[0].Position.X, Players[0].Position.Y), DefaultResolution.X/*this.Width*/, DefaultResolution.Y/*this.Height*/);
+
+
             for (int i = 0; i < NMur; i++)
             {
                 for (int j = 0; j < 6; j++)
                 {
-                    Shadows[j] = tempPt[i, j];
+                    Shadows[j] = ShadowArray[i, j];
                 }
-               
-                e.Graphics.FillPolygon(Br, Shadows);
-                //e.Graphics.DrawLine(myPen, Polygon[i / 4, i % 4, 0], Polygon[i / 4, i % 4, 1], Polygon[i / 4, (i + 1) % 4, 0], Polygon[i / 4, (i + 1) % 4, 1]);
-                               
+                try
+                {
+                    e.Graphics.FillPolygon(Br, Shadows);
+                }
+                catch { }
             }
-            BulletMovement();
-            foreach (Objects.Bullet Bull in Bullet)
+            BulletMovement.CalculateBulletMovement(ref Players, DefaultResolution.X, DefaultResolution.Y, WallX, WallY, NMur);
+            for (int i = 0; i < Players.Count; i++)
             {
-                e.Graphics.FillEllipse(new SolidBrush(Color.Red), Bull.Position.X, Bull.Position.Y, 5, 5);
-            }
-            EnemyBulletMovement();
-            foreach (Objects.Bullet Bull in EnemyBullet)
-            {
-                e.Graphics.FillEllipse(new SolidBrush(Color.Red), Bull.Position.X, Bull.Position.Y, 5, 5);
+                for (int j = 0; j < Players[i].PlayerBullet.Count; j++)
+                {
+                    e.Graphics.FillEllipse(new SolidBrush(Color.Red), Players[i].PlayerBullet[j].Position.X - 2.5f, Players[i].PlayerBullet[j].Position.Y - 2.5f, 5, 5);
+                }
             }
             for (int i = 0; i < NMur; i++)
             {
                 e.Graphics.DrawLine(myPen, WallX[i, 0], WallY[i, 0], WallX[i, 1], WallY[i, 1]);
             }
-            e.Graphics.FillEllipse(enemy, Player1.X-5, Player1.Y-5, 10, 10);
 
-            e.Graphics.DrawLine(new Pen(Color.Green), Player1, Light);
-            for (int i = 0; i < Score.Count; i++)
+            e.Graphics.FillEllipse(new SolidBrush(Color.Green), Players[0].Position.X - 5, Players[0].Position.Y - 5, 10, 10);
+
+            e.Graphics.DrawLine(new Pen(Color.Green), Players[0].Position, Light);
+            for (int i = 0; i < Players.Count && i < 5; i++) // && i < 5 est utilisé pour eviter d'afficher plsude scores que la boite ne le permet
             {
-                e.Graphics.DrawString(Score[i].ToString(), new Font("Time New Roman", 18), new SolidBrush(Color.Yellow), 180, 120 + 30 * i);
+                e.Graphics.DrawString(Players[i].Score.ToString(), new Font("Time New Roman", 18), new SolidBrush(Color.Yellow), 180, 120 + 30 * i);
             }
+
+            e.Graphics.DrawLine(new Pen(Color.Black, 5.0f), new Point(DefaultResolution.X, 0), DefaultResolution);
+
+
+
+#if ShowFPS
+             //FPS
+            e.Graphics.DrawString(((long)FPS.Y * 1000 / (Environment.TickCount - FPS.X)).ToString(), new Font("Time New Roman", 18), new SolidBrush(Color.Red), 25,25);
+#endif
+
         }
-         
+#region KeyEvents
         enum ArrowsPressed
         {
             None = 0x00,
@@ -194,9 +240,7 @@ namespace TopDownShooterGDI
             Escape = 0x20,
             All = 0x3F
         }
-
         ArrowsPressed arrowsPressed;
-         
         void ChangeArrowsState(ArrowsPressed changed, bool isPressed)
         {
             if (isPressed)
@@ -208,10 +252,10 @@ namespace TopDownShooterGDI
                 arrowsPressed &= ArrowsPressed.All ^ changed;
             }
         }
-         
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            /*if (e.KeyData == Keys.P)
+#if Experimental
+            if (e.KeyData == Keys.P)
             {
                 arrowsPressed = ArrowsPressed.None;
                 if (timer1.Enabled)
@@ -223,9 +267,9 @@ namespace TopDownShooterGDI
                     timer1.Start();
                 }
                 return;
-            }*/
+            }
 
-            /*if (e.KeyData == Keys.H)
+            if (e.KeyData == Keys.H)
             {
                 arrowsPressed = ArrowsPressed.None;
                 timer1.Stop();
@@ -238,28 +282,31 @@ namespace TopDownShooterGDI
                 }
                 timer1.Start();
                 return;
-            }*/
+            }
 
-           /* if (e.KeyData == Keys.OemMinus || e.KeyData == Keys.Oemplus)
-            {
-                if (e.KeyData == Keys.OemMinus)
-                {
-                    if (timer1.Interval > 1)
-                    {
-                        timer1.Interval--;
-                    }
-                }
-                else
-                {
-                    timer1.Interval++;
-                }
+             if (e.KeyData == Keys.OemMinus || e.KeyData == Keys.Oemplus)
+             {
+                 if (e.KeyData == Keys.OemMinus)
+                 {
+                     if (timer1.Interval > 1)
+                     {
+                         timer1.Interval--;
+                     }
+                 }
+                 else
+                 {
+                     timer1.Interval++;
+                 }
 
 
-            }*/
-
+             }
+#else
             base.OnKeyDown(e);
             switch (e.KeyCode)
             {
+                /*case Keys.I:
+                    Players[0].IsAI = !Players[0].IsAI;
+                    break;*/ //On/Off AI main player, used for debug purpose (and cheating)
                 case Keys.S:
                     ChangeArrowsState(ArrowsPressed.Down, true);
                     break;
@@ -277,13 +324,17 @@ namespace TopDownShooterGDI
                     break;
                 case Keys.Space:
                     ChangeArrowsState(ArrowsPressed.Space, true);
-                    Player1 = this.PointToClient(Cursor.Position);
+                    Light = this.PointToClient(Cursor.Position);
+                    Light.X = (int)(Light.X / Format.Width);
+                    Light.Y = (int)(Light.Y / Format.Height);
+                    Players[0].Position = Light;
                     break;
                 default:
                     return;
             }
             HandleArrows();
             e.Handled = true;
+#endif
         }
         protected override void OnKeyUp(KeyEventArgs e)
         {
@@ -311,264 +362,123 @@ namespace TopDownShooterGDI
             HandleArrows();
             e.Handled = true;
         }
-         
         private void HandleArrows()
         {
-
-            //MessageBox.Show(arrowsPressed.ToString());
+            
             if ((arrowsPressed & ArrowsPressed.Up) == ArrowsPressed.None && (arrowsPressed & ArrowsPressed.Down) != ArrowsPressed.None)
             {
-                VY = 1;
+                Players[0].Vector = new PointF(Players[0].Vector.X, 1);
+                //VY = 1;
             }
 
             if ((arrowsPressed & ArrowsPressed.Down) == ArrowsPressed.None && (arrowsPressed & ArrowsPressed.Up) != ArrowsPressed.None)
             {
-                VY = -1;
+                Players[0].Vector = new PointF(Players[0].Vector.X, -1);
+                //VY = -1;
             }
 
             if ((arrowsPressed & ArrowsPressed.Right) == ArrowsPressed.None && (arrowsPressed & ArrowsPressed.Left) != ArrowsPressed.None)
             {
-                VX = -1;
+                Players[0].Vector = new PointF(-1, Players[0].Vector.Y);
+                //VX = -1;
             }
 
             if ((arrowsPressed & ArrowsPressed.Left) == ArrowsPressed.None && (arrowsPressed & ArrowsPressed.Right) != ArrowsPressed.None)
             {
-                VX = 1;
+                Players[0].Vector = new PointF(1, Players[0].Vector.Y);
+                //VX = 1;
             }
 
             if (((arrowsPressed & ArrowsPressed.Up) | (arrowsPressed & ArrowsPressed.Down)) == ArrowsPressed.None)
             {
-                VY = 0;
+                Players[0].Vector = new PointF(Players[0].Vector.X, 0);
+                //VY = 0;
             }
 
             if (((arrowsPressed & ArrowsPressed.Right) | (arrowsPressed & ArrowsPressed.Left)) == ArrowsPressed.None)
             {
-                VX = 0;
+                Players[0].Vector = new PointF(0, Players[0].Vector.Y);
+                //VX = 0;
             }
 
             //  Do whatever is needed using position
         }
-         
         private void frmJeu_KeyDown(object sender, KeyEventArgs e)
         {
-            
+
             if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Return)
             {
                 MessageBox.Show("Enter presssed: ");
                 Application.Exit();
             }
-            else
-            {
-                //MessageBox.Show("Test");
-            }
         }
-
+#endregion
         private void frmJeu_MouseClick(object sender, MouseEventArgs e)
         {
-            Bullet.Add(new Objects.Bullet(Player1, new PointF((Light.X - Player1.X)/ (float)Math.Sqrt((Light.X - Player1.X) * (Light.X - Player1.X)+ (Light.Y - Player1.Y)* (Light.Y - Player1.Y)),
-                (Light.Y - Player1.Y) / (float)Math.Sqrt((Light.X - Player1.X) * (Light.X - Player1.X) + (Light.Y - Player1.Y) * (Light.Y - Player1.Y)))));
-            
-            //timer1.Enabled = true;
+            Players[0].PlayerBullet.Add(new Bullet(Players[0].Position, new PointF((Light.X - Players[0].Position.X)/ (float)Math.Sqrt((Light.X - Players[0].Position.X) * (Light.X - Players[0].Position.X)+ (Light.Y - Players[0].Position.Y)* (Light.Y - Players[0].Position.Y)),
+                (Light.Y - Players[0].Position.Y) / (float)Math.Sqrt((Light.X - Players[0].Position.X) * (Light.X - Players[0].Position.X) + (Light.Y - Players[0].Position.Y) * (Light.Y - Players[0].Position.Y)))));
+            Players[0].Score--;
         }
-        private bool IsIntersecting(PointF a, PointF b, PointF c, PointF d)
+        
+        private bool GetPlayerPosition(ref List<Player> Players)
         {
-            float denominator = ((b.X - a.X) * (d.Y - c.Y)) - ((b.Y - a.Y) * (d.X - c.X));
-            float numerator1 = ((a.Y - c.Y) * (d.X - c.X)) - ((a.X - c.X) * (d.Y - c.Y));
-            float numerator2 = ((a.Y - c.Y) * (b.X - a.X)) - ((a.X - c.X) * (b.Y - a.Y));
-            
-            if (denominator == 0) return numerator1 == 0 && numerator2 == 0;
 
-            float r = numerator1 / denominator;
-            float s = numerator2 / denominator;
-
-            return (r >= 0 && r <= 1) && (s >= 0 && s <= 1);
-        }
-        private bool GetPlayerPosition(out Point player2)
-        {
-            Point tempPlayer = new Point();
-            tempPlayer = Player1;
-
-            Player1.X += (int)(VX * (System.Environment.TickCount - MovementLastTick)) / 5;
-            Player1.Y += (int)(VY * (System.Environment.TickCount - MovementLastTick)) / 5;
-            MovementLastTick = System.Environment.TickCount;
-            for (int i = 0; i < NMur; i++)
-            {
-                if (IsIntersecting(Player1, tempPlayer, new Point(WallX[i,0], WallY[i,0]), new Point(WallX[i,1], WallY[i,1])))
-                {
-                    Player1 = tempPlayer;
-                }
-            }
-            if (Player1.X < 0)
-            {
-                Player1.X = 0;
-            }
-            else
-            {
-                if (Player1.X > this.Width)
-                {
-                    Player1.X = this.Width;
-                }
-            }
-
-            if (Player1.Y < 0)
-            {
-                Player1.Y = 0;
-            }
-            else
-            {
-                if (Player1.Y > this.Height)
-                {
-                    Player1.Y = this.Height;
-                }
-            }
-
-            //short AI
-            if (System.Environment.TickCount - AIMovTime > 1000)
-            {
-                AIMovTime = System.Environment.TickCount;
-
-                Random rng = new Random();
-                
-                AIDir.X = rng.Next(-5, 6);
-                AIDir.Y = rng.Next(-5, 6);
-                
-            }
-            
-            player2 = new Point();
-            player2 = new Point((int)(EnemyPosition.X + AIDir.X * (System.Environment.TickCount - AILastTick) / 50), (int)(EnemyPosition.Y + AIDir.Y * (System.Environment.TickCount - AILastTick) / 50));
-
-            /*Point tttt = new Point();
-            if (player2.X != 50)
-            {
-                tttt = player2;
-                using (Graphics g = this.CreateGraphics())
-                {
-                    g.DrawString(player2.X.ToString() + player2.Y.ToString(), new Font("Time New Roman", 24), new SolidBrush(Color.Red), 100, 100);
-                }
-            }*/
-            Point temppt = new Point();
-            temppt = player2;
-            AILastTick = System.Environment.TickCount;
-            for (int i = 0; i < NMur; i++)
-            {
-                if (IsIntersecting(player2, EnemyPosition, new Point(WallX[i, 0], WallY[i, 0]), new Point(WallX[i, 1], WallY[i, 1])))
-                {
-                    player2 = EnemyPosition;
-                }
-            }
-            EnemyPosition = player2;
-            if (player2.X < 0)
-            {
-                AIDir.X = -AIDir.X;
-                player2.X = 0;
-            }
-            else
-            {
-                if (player2.X > this.Width)
-                {
-                    AIDir.X = -AIDir.X;
-                    player2.X = this.Width;
-                }
-            }
-
-            if (player2.Y < 0)
-            {
-                AIDir.Y = -AIDir.Y;
-                player2.Y = 0;
-            }
-            else
-            {
-                if (player2.Y > this.Height)
-                {
-                    AIDir.Y = -AIDir.Y;
-                    player2.Y = this.Height;
-                }
-            }
-            
-
-
-
-            
-            //short AI
-            bool tempBool = true;
-            for (int i = 0; i < NMur; i++)
-            {
-                if (IsIntersecting(player2, Player1, new Point(WallX[i, 0], WallY[i, 0]), new Point(WallX[i, 1], WallY[i, 1])))
-                {
-                    tempBool = false;
-                }
-            }
-            if (tempBool && System.Environment.TickCount - AILastShotTick > 300)
-            {
-                AILastShotTick = System.Environment.TickCount;
-                EnemyBullet.Add(new Objects.Bullet(player2, new PointF((Player1.X - player2.X) / (float)Math.Sqrt((Player1.X - player2.X) * (Player1.X - player2.X) + (Player1.Y - player2.Y) * (Player1.Y - player2.Y)),
-                (Player1.Y - player2.Y) / (float)Math.Sqrt((Player1.X - player2.X) * (Player1.X - player2.X) + (Player1.Y - player2.Y) * (Player1.Y - player2.Y)))));
-            }
-            
+            AICode.Zaratoustra(ref Players, NMur, WallX, WallY, DefaultResolution.X, DefaultResolution.Y, NbrPlayer, NbrAI);
+           
             return true;
         }
         private bool GetMap(out int[,] WallX, out int[,] WallY)
         {
-            NMur = 20;
-            {
-                int NPlayer = 2;
-                for (int i = 0; i < NPlayer; i++)
-                {
-                    Score.Add(0);
-                }
-            }
-            
+            NMur = 15;
+#if Experimental
+                 int NPlayer = 2;
+                 for (int i = 0; i < NPlayer; i++)
+                 {
+                     Score.Add(0);
+                 }
+#endif
 
             WallX = new int[NMur, 2];
             WallY = new int[NMur, 2];
 
             Random rng = new Random();
-            /*for (int i = 0; i < NMur; i++)
-            {
-                WallX[i, 0] = rng.Next(5, this.Width - 5);
-                WallY[i, 0] = rng.Next(5, this.Height - 5);
-                WallX[i, 1] = WallX[i, 0] + 1;
-                WallY[i, 1] = WallY[i, 0];
-            }*/
-            WallX[0, 0] = 50 * 4;
+            
+            WallX[0, 0] = 25 * 4;
             WallY[0, 0] = 25 * 4;
             WallX[0, 1] = 75 * 4;
-            WallY[0, 1] = 50 * 4;
-            WallX[1, 0] = 50 * 4;
+            WallY[0, 1] = 25 * 4;
+
+            WallX[1, 0] = 25 * 4;
             WallY[1, 0] = 75 * 4;
             WallX[1, 1] = 75 * 4;
-            WallY[1, 1] = 50 * 4;
-            WallX[2, 0] = 25 * 4;
-            WallY[2, 0] = 50 * 4;
-            WallX[2, 1] = 50 * 4;
-            WallY[2, 1] = 75 * 4;
-            WallX[3, 0] = 25 * 4;
-            WallY[3, 0] = 50 * 4;
-            WallX[3, 1] = 50 * 4;
-            WallY[3, 1] = 25 * 4;
+            WallY[1, 1] = 75 * 4;
 
+            WallX[2, 0] = 25 * 4;
+            WallY[2, 0] = 25 * 4;
+            WallX[2, 1] = 25 * 4;
+            WallY[2, 1] = 75 * 4;
+
+            WallX[3, 0] = 75 * 4;
+            WallY[3, 0] = 25 * 4;
+            WallX[3, 1] = 75 * 4;
+            WallY[3, 1] = 75 * 4;
 
             for (int i = 4; i < NMur; i++)
             {
-                
-                WallX[i, 0] = rng.Next(5, this.Width - 5);
-                WallY[i, 0] = rng.Next(5, this.Height - 5);
-                WallX[i, 1] = rng.Next(5, this.Width - 5);
-                WallY[i, 1] = rng.Next(5, this.Height - 5);
+                WallX[i, 0] = rng.Next(5, DefaultResolution.X - 5);
+                WallY[i, 0] = rng.Next(5, DefaultResolution.Y - 5);
+                WallX[i, 1] = rng.Next(5, DefaultResolution.X - 5);
+                WallY[i, 1] = rng.Next(5, DefaultResolution.Y - 5);
 
                 for (int j = 0; j < i; j++)
                 {
-                    if (IsIntersecting(new Point(WallX[i,0], WallY[i,0]), new Point(WallX[i, 1], WallY[i, 1]), new Point(WallX[j, 0], WallY[j, 0]), new Point(WallX[j, 1], WallY[j, 1])))
+                    if (Intersecting.IsIntersecting(new Point(WallX[i,0], WallY[i,0]), new Point(WallX[i, 1], WallY[i, 1]), new Point(WallX[j, 0], WallY[j, 0]), new Point(WallX[j, 1], WallY[j, 1])))
                     {
                         j = i;
                         i--;
                     }
                 }
-
             }
-            
-
-
             for (int i = 0; i < NMur; i++)
             {
                 if (WallX[i, 0] < WallX[i, 1])
@@ -581,88 +491,32 @@ namespace TopDownShooterGDI
                     WallY[i, 0] = WallY[i, 1];
                     WallY[i, 1] = temp1;
                 }
-
             }
             return true;
         }
-        private void BulletMovement()
+
+        private void frmJeu_Resize(object sender, EventArgs e)
         {
-            PointF testPoint = new PointF();
-            long LastTick = System.Environment.TickCount - BulletLastTick;
-            BulletLastTick = System.Environment.TickCount;
-            for (int i = Bullet.Count - 1; i >= 0; i--)
+#if !Experimental
+            Format.Width = 1;
+            Format.Height = 1;
+            return;
+#else
+            if (this.Height < this.Width - (this.Width / 8))
             {
-                testPoint = Bullet[i].Position;
-                Bullet[i].Position = new PointF(Bullet[i].Vector.X * LastTick * 1 + Bullet[i].Position.X, Bullet[i].Vector.Y * LastTick * 1 + Bullet[i].Position.Y);
-                if (Bullet[i].Position.X < -20 || Bullet[i].Position.X > this.Width +20|| Bullet[i].Position.Y < -20 || Bullet[i].Position.Y > this.Height +20)
-                {
-                    Bullet.RemoveAt(i);
-                }
-                else
-                {
-                    int j = 0;
-                    while (j < NMur && !IsIntersecting(Bullet[i].Position, testPoint, new Point(WallX[j, 0], WallY[j, 0]), new Point(WallX[j, 1], WallY[j, 1])))
-                    {
-                        j++;
-                    }
-                    if (j != NMur)
-                    {
-                        Bullet.RemoveAt(i);
-                    }
-                    else
-                    {
-                        if (IsIntersecting(Bullet[i].Position, testPoint, new Point(Player2.X, Player2.Y - 5), new Point(Player2.X, Player2.Y + 5)) || IsIntersecting(Bullet[i].Position, testPoint, new Point(Player2.X - 5, Player2.Y), new Point(Player2.X + 5, Player2.Y)))
-                        {
-                            Random rng = new Random();
-                            EnemyPosition = new Point(rng.Next(1, this.Width), rng.Next(1, this.Height));
-                            Score[0]++;
-                            //MessageBox.Show("YÉ MOURU!");
-                        }
-                    }
-                }
-
-                // safePendingList.RemoveAt(i);
+                Format.Width = (float)(this.Width - (this.Width - this.Height)) / DefaultResolution.X;
+                Format.Height = (float)this.Height / DefaultResolution.Y;
             }
-            //Bullet.Where(w => true).ToList().ForEach(s => s.Position = new PointF(s.Position.X + s.Vector.X, s.Position.Y + s.Vector.Y));
-        }
-        private void EnemyBulletMovement()
-        {
-            PointF testPoint = new PointF();
-            long LastTick = System.Environment.TickCount - EnemyBulletLastTick;
-            EnemyBulletLastTick = System.Environment.TickCount;
-
-
-            for (int i = EnemyBullet.Count - 1; i >= 0; i--)
+            else
             {
-                testPoint = EnemyBullet[i].Position;
-                EnemyBullet[i].Position = new PointF(EnemyBullet[i].Vector.X * LastTick * 1 + EnemyBullet[i].Position.X, EnemyBullet[i].Vector.Y * LastTick * 1 + EnemyBullet[i].Position.Y);
-                if (EnemyBullet[i].Position.X < -20 || EnemyBullet[i].Position.X > this.Width +20 || EnemyBullet[i].Position.Y < -20 || EnemyBullet[i].Position.Y > this.Height +20)
-                {
-                    EnemyBullet.RemoveAt(i);
-                }
-                else
-                {
-                    int j = 0;
-                    while (j < NMur && !IsIntersecting(EnemyBullet[i].Position, testPoint, new Point(WallX[j, 0], WallY[j, 0]), new Point(WallX[j, 1], WallY[j, 1])))
-                    {
-                        j++;
-                    }
-                    if (j != NMur)
-                    {
-                        EnemyBullet.RemoveAt(i);
-                    }
-                    else
-                    {
-                        if (IsIntersecting(EnemyBullet[i].Position, testPoint, new Point(Player1.X, Player1.Y - 5), new Point(Player1.X, Player1.Y + 5)) || IsIntersecting(EnemyBullet[i].Position, testPoint, new Point(Player1.X - 5, Player1.Y), new Point(Player1.X + 5, Player1.Y)))
-                        {
-                            Random rng = new Random();
-                            Player1 = new Point(rng.Next(1, this.Width), rng.Next(1, this.Height));
-                            Score[1]++;
-                            //MessageBox.Show("TÉ MOURU!");
-                        }
-                    }
-                }
+                this.Height = this.Width - (this.Width / 8);
+                Format.Width = (float)(this.Width - (this.Width - this.Height)) / DefaultResolution.X;
+                Format.Height = (float)this.Height / DefaultResolution.Y;
+                //    Format.Width = (float)(this.Width - (this.Width / 8)) / DefaultResolution.X;
+                //    Format.Height = (float)(this.Width - (this.Width / 8)) / DefaultResolution.Y;
             }
+#endif
+
         }
     }
 }

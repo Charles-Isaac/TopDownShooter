@@ -8,15 +8,24 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{0AB0AF6C-2C55-48A1-AD0D-9E6CC7E1E22A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0AB0AF6C-2C55-48A1-AD0D-9E6CC7E1E22A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0AB0AF6C-2C55-48A1-AD0D-9E6CC7E1E22A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0AB0AF6C-2C55-48A1-AD0D-9E6CC7E1E22A}.Debug|x64.Build.0 = Debug|Any CPU
 		{0AB0AF6C-2C55-48A1-AD0D-9E6CC7E1E22A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0AB0AF6C-2C55-48A1-AD0D-9E6CC7E1E22A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0AB0AF6C-2C55-48A1-AD0D-9E6CC7E1E22A}.Release|x64.ActiveCfg = Release|x64
+		{0AB0AF6C-2C55-48A1-AD0D-9E6CC7E1E22A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(CodealikeProperties) = postSolution
+		SolutionGuid = bac5b539-b223-4696-83d6-90ac352aeb20
 	EndGlobalSection
 EndGlobal

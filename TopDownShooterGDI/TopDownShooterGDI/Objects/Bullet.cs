@@ -4,8 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.Diagnostics;
 
-namespace TopDownShooterGDI.Objects
+namespace TopDownShooterGDI
 {
     public class Bullet
     {
@@ -13,7 +14,9 @@ namespace TopDownShooterGDI.Objects
         {
             this.Position = x;
             this.Vector = y;
+            this.BulletLastTick = System.Environment.TickCount;
         }
+        public long BulletLastTick { set; get; }
         public PointF Position { set; get; }
         public PointF Vector { set; get; }
     }

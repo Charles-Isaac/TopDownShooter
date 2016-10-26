@@ -28,24 +28,21 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
-            // 
-            // timer1
-            // 
-            this.timer1.Interval = 10;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
             // 
             // frmJeu
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(422, 302);
+            this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.ClientSize = new System.Drawing.Size(300, 300);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.MaximumSize = new System.Drawing.Size(5000, 5000);
+            this.MinimizeBox = false;
             this.Name = "frmJeu";
             this.Text = "Form1";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.Load += new System.EventHandler(this.frmJeu_Load);
-            this.Paint += new System.Windows.Forms.PaintEventHandler(this.frmJeu_Paint);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.frmJeu_KeyDown);
             this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.frmJeu_MouseClick);
             this.Resize += new System.EventHandler(this.frmJeu_Resize);
@@ -54,7 +51,6 @@
         }
 
         #endregion
-        private System.Windows.Forms.Timer timer1;
     }
 }
 

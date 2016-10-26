@@ -7,6 +7,5 @@ c:\users\charles-isaac\documents\visual studio 2015\Projects\TopDownShooterGDI\T
 c:\users\charles-isaac\documents\visual studio 2015\Projects\TopDownShooterGDI\TopDownShooterGDI\obj\Debug\TopDownShooterGDI.csproj.GenerateResource.Cache
 c:\users\charles-isaac\documents\visual studio 2015\Projects\TopDownShooterGDI\TopDownShooterGDI\obj\Debug\TopDownShooterGDI.exe
 c:\users\charles-isaac\documents\visual studio 2015\Projects\TopDownShooterGDI\TopDownShooterGDI\obj\Debug\TopDownShooterGDI.pdb
-C:\Users\Charles-Isaac\Documents\GitHub\tds\TopDownShooterGDI\TopDownShooterGDI\bin\Debug\TopDownShooterGDI.exe.config
-C:\Users\Charles-Isaac\Documents\GitHub\tds\TopDownShooterGDI\TopDownShooterGDI\obj\Debug\TopDownShooterGDI.exe
-C:\Users\Charles-Isaac\Documents\GitHub\tds\TopDownShooterGDI\TopDownShooterGDI\obj\Debug\TopDownShooterGDI.pdb
+C:\Users\Charles-Isaac\Documents\Visual Studio 2015\Projects\TopDownShooterGDI\TopDownShooterGDI\obj\Debug\TopDownShooterGDI.UI.Main_Menu.resources
+C:\Users\Charles-Isaac\Documents\Visual Studio 2015\Projects\TopDownShooterGDI\TopDownShooterGDI\obj\Debug\TopDownShooterGDI.UI.Setup_Menu.resources

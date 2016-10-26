@@ -8,11 +8,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace TopDownShooter.Objects
+namespace TopDownShooterGDI
 {
-    class ShadowPolygon
+    static class ShadowPolygon
     {
-        public Point[,] ReturnMeAnArray(int NMur, int[,] WallX, int[,] WallY, Point LightSource)
+        public static Point[,] ReturnMeAnArray(int NMur, int[,] WallX, int[,] WallY, PointF LightSource, int Width, int Height)
         {
             Point[,] tempPt = new Point[NMur, 6];
             int[,,] PolyGone = new int[NMur/* * 2 + 4*/, 4, 2];  //int[NO of the polygon, NO of the point of the angles of the polygon, X or Y]
@@ -32,8 +32,8 @@ namespace TopDownShooter.Objects
                 if (TDVAngle0X > 0)
                 {
                     
-                    PolyGone[i, 2, 0] = TopDownShooterGDI.frmJeu.WindowsSizeX;
-                    PolyGone[i, 2, 1] = (int)(LightSource.Y + TDVAngle0Y * (TopDownShooterGDI.frmJeu.WindowsSizeX - LightSource.X) / TDVAngle0X);
+                    PolyGone[i, 2, 0] = Width;
+                    PolyGone[i, 2, 1] = (int)(LightSource.Y + TDVAngle0Y * (Width - LightSource.X) / TDVAngle0X);
                 }
                 else
                 {
@@ -47,7 +47,7 @@ namespace TopDownShooter.Objects
                         PolyGone[i, 2, 0] = (int)LightSource.X;
                         if (TDVAngle0Y > 0)
                         {
-                            PolyGone[i, 2, 1] = TopDownShooterGDI.frmJeu.WindowsSizeY;
+                            PolyGone[i, 2, 1] = Height;
                         }
                         else
                         {
@@ -70,8 +70,8 @@ namespace TopDownShooter.Objects
 
                 if (TDVAngle1X > 0)
                 {
-                    PolyGone[i, 3, 0] = TopDownShooterGDI.frmJeu.WindowsSizeX;
-                    PolyGone[i, 3, 1] = (int)(LightSource.Y + TDVAngle1Y * (TopDownShooterGDI.frmJeu.WindowsSizeX - LightSource.X) / TDVAngle1X);
+                    PolyGone[i, 3, 0] = Width;
+                    PolyGone[i, 3, 1] = (int)(LightSource.Y + TDVAngle1Y * (Width - LightSource.X) / TDVAngle1X);
                 }
                 else
                 {
@@ -85,7 +85,7 @@ namespace TopDownShooter.Objects
                         PolyGone[i, 3, 0] = (int)LightSource.X;
                         if (TDVAngle1Y > 0)
                         {
-                            PolyGone[i, 3, 1] = TopDownShooterGDI.frmJeu.WindowsSizeY;
+                            PolyGone[i, 3, 1] = Height;
                         }
                         else
                         {
@@ -138,13 +138,13 @@ namespace TopDownShooter.Objects
                     {
                         if (((tempPt[i,1].X - tempPt[i,0].X) * (LightSource.Y - tempPt[i,0].Y) - (tempPt[i,1].Y - tempPt[i,0].Y) * (LightSource.X - tempPt[i,0].X)) > 0)
                         {
-                            if (tempPt[i,2].Y < TopDownShooterGDI.frmJeu.WindowsSizeY)
+                            if (tempPt[i,2].Y < Height)
                             {
-                                tempPt[i,3].Y = TopDownShooterGDI.frmJeu.WindowsSizeY;
+                                tempPt[i,3].Y = Height;
                             }
-                            if (tempPt[i,5].Y < TopDownShooterGDI.frmJeu.WindowsSizeY)
+                            if (tempPt[i,5].Y < Height)
                             {
-                                tempPt[i,4].Y = TopDownShooterGDI.frmJeu.WindowsSizeY;
+                                tempPt[i,4].Y = Height;
                             }
                         }
                     }
